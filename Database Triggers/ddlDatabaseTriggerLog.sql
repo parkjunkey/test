@@ -4,6 +4,7 @@ FOR DDL_DATABASE_LEVEL_EVENTS AS
 BEGIN
     SET NOCOUNT ON;
 
+    ---# ddsfad
     DECLARE @data XML;
     DECLARE @schema sysname;
     DECLARE @object sysname;
