@@ -1,0 +1,3 @@
+﻿CREATE LOGIN [TestPark2]
+    WITH PASSWORD = N'@5vl|gg+msurvurpplypj<e,msFT7_&#$!~<tpo^=guBwjiz', SID = 0x73DBDF7ED9F59F4EB96E68857B669A2E, DEFAULT_LANGUAGE = [한국어], CHECK_EXPIRATION = ON;
+
