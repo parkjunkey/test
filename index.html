@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DDL 리뷰 요청</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- 폼 화면 -->
+    <div id="formView">
+      <header class="page-header">
+        <h1>DDL 리뷰 요청</h1>
+        <p class="subtitle">DDL 구문을 제출하면 DBA 봇이 안전성·영향도·컨벤션을 자동 분석합니다.</p>
+        <span class="badge">리뷰 전용 — 구문 직접 실행 없음</span>
+      </header>
+
+      <form id="ddlForm" novalidate>
+
+        <!-- ① DB 정보 -->
+        <section class="card">
+          <h2>1. DB 정보</h2>
+          <div class="form-row two-col">
+
+            <div class="field">
+              <label for="db_name">DB 명 <span class="required">*</span></label>
+              <input type="text" id="db_name" name="db_name"
+                     placeholder="예) USER_DB, ORDER_DB" required />
+              <span class="helper">대상 데이터베이스 이름을 정확히 입력해 주세요.</span>
+            </div>
+
+            <div class="field">
+              <label for="db_type">DB 종류 <span class="required">*</span></label>
+              <select id="db_type" name="db_type" required>
+                <option value="" disabled selected>선택하세요</option>
+                <option value="mssql">MS-SQL</option>
+                <option value="mysql">MySQL</option>
+                <option value="mariadb">MariaDB</option>
+                <option value="aurora_mysql">Aurora MySQL</option>
+              </select>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ② DDL 구문 -->
+        <section class="card">
+          <h2>2. DDL 구문 <span class="required">*</span></h2>
+
+          <div id="mysql-notice" class="notice notice-info hidden">
+            MySQL / MariaDB / Aurora MySQL은 테이블 및 컬럼에 <code>COMMENT</code> 절을 반드시 포함해야 합니다.
+          </div>
+
+          <div class="field">
+            <textarea id="ddl_sql" name="ddl_sql" rows="12"
+                      placeholder="CREATE TABLE, ALTER TABLE, DROP TABLE 등 DDL 구문을 입력하세요."
+                      required spellcheck="false"></textarea>
+          </div>
+        </section>
+
+        <!-- ③ 테이블 주석 스크립트 (MS-SQL 전용) -->
+        <section class="card hidden" id="mssql-comment-section">
+          <h2>3. 테이블 주석 스크립트 <span class="required">*</span>
+            <span class="tag tag-mssql">MS-SQL 필수</span>
+          </h2>
+          <div class="notice notice-warn">
+            MS-SQL은 <code>sp_addextendedproperty</code> 등을 이용한 테이블·컬럼 주석 스크립트를 DDL과 함께 제출해야 합니다.
+          </div>
+          <div class="field">
+            <textarea id="mssql_comment_sql" name="mssql_comment_sql" rows="8"
+                      placeholder="EXEC sp_addextendedproperty ..."
+                      spellcheck="false"></textarea>
+          </div>
+        </section>
+
+        <!-- ④ 요청자 정보 -->
+        <section class="card">
+          <h2>4. 요청자 정보</h2>
+          <div class="form-row two-col">
+
+            <div class="field">
+              <label for="requester">요청자 <span class="required">*</span></label>
+              <input type="text" id="requester" name="requester"
+                     placeholder="이름 또는 사번" required />
+            </div>
+
+            <div class="field">
+              <label for="contact">연락처 (슬랙 ID / 이메일)</label>
+              <input type="text" id="contact" name="contact"
+                     placeholder="@slack-id 또는 user@company.com" />
+            </div>
+
+          </div>
+          <div class="field">
+            <label for="reason">작업 목적</label>
+            <input type="text" id="reason" name="reason"
+                   placeholder="예) 신규 기능 배포, 컬럼 추가 요청 등" />
+          </div>
+        </section>
+
+        <!-- 제출 -->
+        <div class="form-footer">
+          <button type="reset" class="btn btn-secondary">초기화</button>
+          <button type="submit" class="btn btn-primary">리뷰 요청 제출</button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- 제출 완료 화면 -->
+    <div id="successView" class="hidden">
+      <div class="success-screen">
+        <div class="icon">✅</div>
+        <h2>요청이 접수되었습니다</h2>
+        <p>
+          DBA 봇이 DDL 구문을 검토 중입니다.<br />
+          리뷰 결과는 입력하신 연락처로 전달드립니다.<br /><br />
+          <strong>※ 현재는 샘플 페이지입니다. 실제 리뷰는 진행되지 않습니다.</strong>
+        </p>
+        <button class="back-btn" onclick="resetForm()">새 요청 작성하기</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const dbTypeEl = document.getElementById('db_type');
+    const mssqlSection = document.getElementById('mssql-comment-section');
+    const mssqlTextarea = document.getElementById('mssql_comment_sql');
+    const mysqlNotice = document.getElementById('mysql-notice');
+    const formView = document.getElementById('formView');
+    const successView = document.getElementById('successView');
+
+    const MYSQL_TYPES = ['mysql', 'mariadb', 'aurora_mysql'];
+
+    dbTypeEl.addEventListener('change', () => {
+      const val = dbTypeEl.value;
+
+      if (val === 'mssql') {
+        mssqlSection.classList.remove('hidden');
+        mssqlTextarea.required = true;
+      } else {
+        mssqlSection.classList.add('hidden');
+        mssqlTextarea.required = false;
+        mssqlTextarea.value = '';
+      }
+
+      mysqlNotice.classList.toggle('hidden', !MYSQL_TYPES.includes(val));
+    });
+
+    document.getElementById('ddlForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const ddlVal = document.getElementById('ddl_sql').value.trim();
+      if (!ddlVal) {
+        alert('DDL 구문을 입력해 주세요.');
+        return;
+      }
+      if (!document.getElementById('db_name').value.trim()) {
+        alert('DB 명을 입력해 주세요.');
+        return;
+      }
+      if (!dbTypeEl.value) {
+        alert('DB 종류를 선택해 주세요.');
+        return;
+      }
+      if (!document.getElementById('requester').value.trim()) {
+        alert('요청자를 입력해 주세요.');
+        return;
+      }
+      if (dbTypeEl.value === 'mssql' && !mssqlTextarea.value.trim()) {
+        alert('MS-SQL은 테이블 주석 스크립트도 필수입니다.');
+        return;
+      }
+
+      formView.classList.add('hidden');
+      successView.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    function resetForm() {
+      document.getElementById('ddlForm').reset();
+      mssqlSection.classList.add('hidden');
+      mysqlNotice.classList.add('hidden');
+      successView.classList.add('hidden');
+      formView.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
